@@ -3,13 +3,13 @@ library(dplyr)
 exper_data <- read.csv("../data/treatment_metrics.csv", header=TRUE, sep=",")
 contr_data <- read.csv("../data/control_metrics.csv", header=TRUE, sep=",")
 
-exper_data['isGeneratedByCopliot'] <- TRUE
-contr_data['isGeneratedByCopliot'] <- FALSE
+exper_data['isGeneratedByAgent'] <- TRUE
+contr_data['isGeneratedByAgent'] <- FALSE
 data <- rbind(exper_data, contr_data)
 data$isMerged <- data$state == "MERGED"
 model_data <- data.frame(data$reviewTime, data$reviewersTotalCount, data$reviewersComments, data$authorComments,
                          data$commentsTotalCount, data$additions, data$deletions, data$prSize,
-                         data$commitsTotalCount, data$changedFiles, data$prExperience, data$isGeneratedByCopliot, data$bodyLength, 
+                         data$commitsTotalCount, data$changedFiles, data$prExperience, data$isGeneratedByAgent, data$bodyLength, 
                          data$purpose,data$repoLanguage,data$forkCount,data$stargazerCount,data$repoAge,data$isMember,data$isMerged)
 names(model_data)[1] <- "reviewTime"
 names(model_data)[2] <- "reviewersTotalCount"
@@ -22,7 +22,7 @@ names(model_data)[8] <- "prSize"
 names(model_data)[9] <- "commitsTotalCount"
 names(model_data)[10] <- "changedFiles"
 names(model_data)[11] <- "prExperience"
-names(model_data)[12] <- "isGeneratedByCopliot"
+names(model_data)[12] <- "isGeneratedByAgent"
 names(model_data)[13] <- "bodyLength"
 names(model_data)[14] <- "purpose"
 names(model_data)[15] <- "repoLanguage"
@@ -45,7 +45,7 @@ library("broom")
 library("magrittr")
 library("WeightIt")
 library("cobalt")
-W.out <- weightit(isGeneratedByCopliot ~ reviewersTotalCount + reviewersComments + authorComments + commentsTotalCount   +
+W.out <- weightit(isGeneratedByAgent ~ reviewersTotalCount + reviewersComments + authorComments + commentsTotalCount   +
                     additions + deletions + prSize + commitsTotalCount + changedFiles + prExperience +
                     bodyLength + purpose + repoLanguage + forkCount + stargazerCount + repoAge + isMember ,
                   data = model_data, estimand = "ATT", method = "ebal")
@@ -54,7 +54,7 @@ bal.tab(W.out,threshold=0.1)
 plot(bal.tab(W.out,threshold=0.1, un = TRUE), abs = TRUE)
 
 library("marginaleffects")
-fit <- glm( isMerged ~ isGeneratedByCopliot  +
+fit <- glm( isMerged ~ isGeneratedByAgent  +
        reviewersTotalCount + reviewersComments + authorComments + commentsTotalCount   +
        additions + deletions + prSize + commitsTotalCount + changedFiles + prExperience +
        bodyLength + purpose + repoLanguage + forkCount + stargazerCount + repoAge + isMember ,
@@ -62,14 +62,14 @@ fit <- glm( isMerged ~ isGeneratedByCopliot  +
 
 # Section 5.2 RQ2: How are the code reviews affected by the use of Copilot for PRs? - (RQ2.2)
 avg_comparisons(fit,
-                  variables = "isGeneratedByCopliot",
+                  variables = "isGeneratedByAgent",
                   vcov = "HC3",
                   wts = W.out$weights,
                   comparison = "lnoravg",
                   transform = "exp")
 
 PSW_result <- model_data %>%
-  lm(isMerged ~ isGeneratedByCopliot +  
+  lm(isMerged ~ isGeneratedByAgent +  
        reviewersTotalCount + reviewersComments + authorComments + commentsTotalCount   +
        additions + deletions + prSize + commitsTotalCount + changedFiles + prExperience +
        bodyLength + purpose + repoLanguage + forkCount + stargazerCount + repoAge + isMember ,
